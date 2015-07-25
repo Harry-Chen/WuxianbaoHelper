@@ -1,22 +1,43 @@
-// WuxianbaoHelper.cpp : 定义控制台应用程序的入口点。
-//
+/*
+* Copyright (C) 2015 Harry Chen
+*
+* This file is part of WuxianbaoHelper
+*
+* WuxianbaoHelper is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* WuxianbaoHelper is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with WuxianbaoHelper.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "stdafx.h"
 
 using namespace std;
+
 int _tmain(int argc, _TCHAR* argv[])
 {
-	if (argc==2 && !wcscmp(argv[1], _T("init"))){
+	//用于在批处理改变.und文件关联后通知系统刷新
+	if (argc == 2 && !wcscmp(argv[1], _T("init"))){
 		SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL);
 		wcout << _T("Done refreshing registry. Exiting...") << endl;
 		return 0;
 	}
+
 	HWND hDos = GetForegroundWindow();
-	ShowWindow(hDos, SW_HIDE);
-	wcout.imbue(locale(""));
+	ShowWindow(hDos, SW_HIDE); //隐藏窗口
+	wcout.imbue(locale("")); //This is so evil.
+
 	TCHAR *document = NULL, QuotedDocumentPath[MAX_PATH];
-	BOOL hasParam = false;
+	BOOL hasParam = false; //是否传入了文档路径
 	if (argc >= 2){
+		//在命令行最后加'-d'打开调试模式
 		int isDifferent = wcscmp(argv[1], _T("-d"));
 		if (!isDifferent || argc == 3){
 			ShowWindow(hDos, SW_NORMAL);
@@ -39,6 +60,7 @@ int _tmain(int argc, _TCHAR* argv[])
 	GetModuleFileName(NULL, CurrentPath, sizeof(CurrentPath));
 	wcout << "Helper Path: " << CurrentPath << endl;
 
+	//黑科技，截去exe的文件名和多余的'\'
 	*wcsrchr(CurrentPath, '\\') = 0;
 	wcout << "Working Path: " << CurrentPath << endl;
 
@@ -54,13 +76,13 @@ int _tmain(int argc, _TCHAR* argv[])
 	ShExecInfo.hwnd = hDos;
 	ShExecInfo.lpVerb = _T("open");
 	ShExecInfo.lpFile = ExePath;
-	ShExecInfo.lpParameters = hasParam ? QuotedDocumentPath : NULL;
+	ShExecInfo.lpParameters = hasParam ? QuotedDocumentPath : NULL; //防止阅读器动作诡异
 	ShExecInfo.lpDirectory = CurrentPath;
 	ShExecInfo.nShow = SW_SHOWNORMAL;
 	ShExecInfo.hInstApp = NULL;
 	BOOL ret = ShellExecuteEx(&ShExecInfo);
 	if (!ret) {
-		wcout << "Error executing the viewer. Exit." << endl;
+		wcout << "Error executing the viewer. Exit." << endl; //Will this happen?
 		return 255;
 	}
 	wcout << "Waiting for the viewer to quit..." << endl;
@@ -76,6 +98,7 @@ int _tmain(int argc, _TCHAR* argv[])
 		wcout << GetLastError() << endl;
 		return 1;
 	}
+	//循环查找并删除log
 	do{
 		TCHAR FullPath[MAX_PATH];
 		wcscpy_s(FullPath, CurrentPath);
